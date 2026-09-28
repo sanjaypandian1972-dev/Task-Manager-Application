@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taskboard</title>
+<style>
+:root{--bg:#EEF1F6;--surface:#fff;--ink:#1A2233;--muted:#66708A;--line:#DCE1EB;--accent:#2D5BE3;--accent-ink:#fff;--todo:#8791A8;--doing:#D98A0B;--done:#1F9D63;--high:#D6423F;--med:#D98A0B;--low:#4A8BC9}
+@media (prefers-color-scheme:dark){:root{--bg:#121722;--surface:#1B2232;--ink:#E7EBF4;--muted:#939DB5;--line:#2A3348;--accent:#6E8CFF;--accent-ink:#0E1424}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+[hidden]{display:none!important}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;justify-content:space-between;margin-bottom:20px}
+h1{font-size:2rem;letter-spacing:-.03em;margin:0}
+.sub{color:var(--muted);margin:2px 0 0}
+.who{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.live{width:9px;height:9px;border-radius:50%;background:var(--todo)}.live.on{background:var(--done)}
+.prog{flex:1;min-width:220px;max-width:360px}
+.prog .row{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted);margin-bottom:6px}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;display:flex}
+.bar i{display:block;height:100%;transition:width .3s}
+.tools{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;width:100%}
+.tools input{flex:1;min-width:150px;width:auto}.tools select{width:auto}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+button:hover{border-color:var(--accent)}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+@media(max-width:820px){.board{grid-template-columns:1fr}.prog{max-width:none;flex-basis:100%}.tools button,.tools select{flex:1}}
+.col{background:color-mix(in srgb,var(--line) 45%,transparent);border-radius:14px;padding:12px;min-height:110px}
+.col.over{outline:2px dashed var(--accent)}
+.col h2{font-size:1rem;margin:2px 4px 12px;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%}
+.count{margin-left:auto;color:var(--muted);font-weight:400}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--p);border-radius:10px;padding:12px;margin-bottom:10px;cursor:grab}
+.card.dragging{opacity:.4}
+.card h3{margin:0 0 4px;font-size:1rem;font-weight:600;overflow-wrap:anywhere}
+.card.done h3{text-decoration:line-through;color:var(--muted)}
+.card p{margin:0 0 8px;color:var(--muted);font-size:.9rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.82rem;color:var(--muted);margin-bottom:8px}
+.overdue{color:var(--high);font-weight:600}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.acts button{padding:5px 10px;font-size:.82rem}
+.empty{color:var(--muted);font-size:.9rem;padding:8px 4px}
+#auth{min-height:100vh;display:grid;place-items:center;padding:20px}
+#af{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px;width:min(400px,100%)}
+#af button{width:100%;margin-top:8px}
+.err{color:var(--high);min-height:1.3em;margin:0 0 4px;font-size:.9rem}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);width:min(440px,92vw);padding:22px}
+dialog::backdrop{background:rgba(10,14,24,.5)}
+dialog h2{margin:0 0 14px}
+label{display:block;font-size:.88rem;color:var(--muted);margin-bottom:12px}
+label>*{margin-top:4px;color:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.foot{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<main id="auth" hidden>
+  <form id="af">
+    <h1>Taskboard</h1>
+    <p class="sub" id="am">Sign in to see your tasks.</p><br>
+    <label id="nl" hidden>Name<input id="an" maxlength="60" autocomplete="name"></label>
+    <label>Email<input id="ae" type="email" required autocomplete="email"></label>
+    <label>Password<input id="ap" type="password" required minlength="6" autocomplete="current-password"></label>
+    <p class="err" id="aerr" role="alert"></p>
+    <button class="primary" id="asub">Sign in</button>
+    <button type="button" id="atog">Create an account</button>
+  </form>
+</main>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div><h1>Taskboard</h1><p class="sub">Changes sync live across your devices.</p></div>
+    <div class="prog">
+      <div class="row"><span id="ptext">0 of 0 done</span><span id="ppct">0%</span></div>
+      <div class="bar" id="bar"></div>
+    </div>
+    <div class="who"><span class="live" id="live" title="Live updates"></span><span id="uname"></span><button id="out">Log out</button></div>
+  </header>
+  <div class="tools">
+    <button class="primary" id="add">New task</button>
+    <input type="search" id="q" placeholder="Search tasks" aria-label="Search tasks">
+    <select id="fp" aria-label="Filter by priority"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+    <select id="sort" aria-label="Sort"><option value="created">Newest first</option><option value="due">Due date</option><option value="prio">Priority</option></select>
+  </div>
+  <div class="board" id="board"></div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="f">
+    <h2 id="dt">New task</h2>
+    <label>Title<input id="title" required maxlength="120"></label>
+    <label>Notes<textarea id="notes" rows="3"></textarea></label>
+    <div class="two">
+      <label>Priority<select id="prio"><option>High</option><option selected>Medium</option><option>Low</option></select></label>
+      <label>Due date<input type="date" id="due"></label>
+    </div>
+    <label>Status<select id="status"><option value="todo">To do</option><option value="doing">In progress</option><option value="done">Done</option></select></label>
+    <div class="foot"><button type="button" id="cancel">Cancel</button><button class="primary" type="submit">Save task</button></div>
+  </form>
+</dialog>
+
+<script>
+const COLS=[["todo","To do","--todo"],["doing","In progress","--doing"],["done","Done","--done"]];
+const PC={High:"var(--high)",Medium:"var(--med)",Low:"var(--low)"},PR={High:0,Medium:1,Low:2};
+const $=id=>document.getElementById(id);
+let token=localStorage.getItem("tb_token"),user=JSON.parse(localStorage.getItem("tb_user")||"null");
+let tasks=[],editing=null,dragId=null,ws,registering=false;
+
+async function api(p,m="GET",b){
+  const r=await fetch("/api"+p,{method:m,headers:{"Content-Type":"application/json",...(token&&{Authorization:"Bearer "+token})},body:b&&JSON.stringify(b)});
+  if(r.status===401&&token){logout();throw Error("Session expired. Please sign in again.")}
+  const d=r.status===204?null:await r.json();
+  if(!r.ok)throw Error(d.error||"Request failed");
+  return d;
+}
+
+/* ---------- auth ---------- */
+function setAuthMode(reg){
+  registering=reg;$("nl").hidden=!reg;$("an").required=reg;
+  $("asub").textContent=reg?"Create account":"Sign in";
+  $("atog").textContent=reg?"I already have an account":"Create an account";
+  $("am").textContent=reg?"Create an account to start tracking tasks.":"Sign in to see your tasks.";
+  $("ap").autocomplete=reg?"new-password":"current-password";$("aerr").textContent="";
+}
+$("atog").onclick=()=>setAuthMode(!registering);
+$("af").onsubmit=async e=>{
+  e.preventDefault();
+  try{
+    const d=await api(registering?"/register":"/login","POST",{name:$("an").value,email:$("ae").value,password:$("ap").value});
+    token=d.token;user=d.user;
+    localStorage.setItem("tb_token",token);localStorage.setItem("tb_user",JSON.stringify(user));
+    $("af").reset();start();
+  }catch(err){$("aerr").textContent=err.message}
+};
+function logout(){
+  token=null;user=null;tasks=[];localStorage.removeItem("tb_token");localStorage.removeItem("tb_user");
+  if(ws)ws.close();$("app").hidden=true;$("auth").hidden=false;setAuthMode(false);
+}
+$("out").onclick=logout;
+
+/* ---------- real-time ---------- */
+function connect(){
+  if(!token)return;
+  ws=new WebSocket((location.protocol==="https:"?"wss":"ws")+"://"+location.host+"/ws?token="+token);
+  ws.onopen=()=>$("live").classList.add("on");
+  ws.onmessage=()=>load();
+  ws.onclose=()=>{$("live").classList.remove("on");if(token)setTimeout(connect,2000)};
+}
+
+/* ---------- tasks ---------- */
+async function load(){try{tasks=await api("/tasks");render()}catch(e){}}
+function start(){
+  $("auth").hidden=true;$("app").hidden=false;$("uname").textContent=user.name;
+  load();connect();
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function fmt(d){return new Date(d+"T00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}
+function render(){
+  const q=$("q").value.toLowerCase(),fp=$("fp").value,sort=$("sort").value,today=new Date().toISOString().slice(0,10);
+  const list=tasks.filter(t=>(!fp||t.prio===fp)&&(t.title+" "+t.notes).toLowerCase().includes(q));
+  list.sort((a,b)=>sort==="due"?(a.due||"9").localeCompare(b.due||"9"):sort==="prio"?PR[a.prio]-PR[b.prio]:b.created-a.created);
+  $("board").innerHTML=COLS.map(([k,name,c])=>{
+    const items=list.filter(t=>t.status===k),i=COLS.findIndex(x=>x[0]===k);
+    return `<section class="col" data-col="${k}"><h2><span class="dot" style="background:var(${c})"></span>${name}<span class="count">${items.length}</span></h2>`+
+    (items.map(t=>{
+      const od=t.due&&t.status!=="done"&&t.due<today;
+      return `<article class="card ${t.status}" draggable="true" data-id="${t.id}" style="--p:${PC[t.prio]}">
+        <h3>${esc(t.title)}</h3>${t.notes?`<p>${esc(t.notes)}</p>`:""}
+        <div class="meta"><span>${t.prio} priority</span>${t.due?`<span class="${od?"overdue":""}">${od?"Overdue: ":"Due "}${fmt(t.due)}</span>`:""}</div>
+        <div class="acts">${i>0?`<button data-a="back" data-id="${t.id}">Move back</button>`:""}${i<2?`<button data-a="fwd" data-id="${t.id}">${i===0?"Start":"Complete"}</button>`:""}<button data-a="edit" data-id="${t.id}">Edit</button><button data-a="del" data-id="${t.id}">Delete</button></div></article>`}).join("")||`<div class="empty">${q||fp?"No matching tasks.":"Nothing here yet."}</div>`)+`</section>`}).join("");
+  const n=tasks.length,by=k=>tasks.filter(t=>t.status===k).length,pct=n?Math.round(by("done")/n*100):0;
+  $("ptext").textContent=`${by("done")} of ${n} done`;$("ppct").textContent=pct+"%";
+  $("bar").innerHTML=COLS.slice().reverse().map(([k,,c])=>`<i style="width:${n?by(k)/n*100:0}%;background:var(${c})"></i>`).join("");
+}
+function openForm(id){
+  editing=id;const t=tasks.find(x=>x.id===id)||{title:"",notes:"",prio:"Medium",due:"",status:"todo"};
+  $("dt").textContent=id?"Edit task":"New task";
+  ["title","notes","prio","due","status"].forEach(k=>$(k).value=t[k]);
+  $("dlg").showModal();$("title").focus();
+}
+const fail=e=>alert(e.message);
+async function setStatus(id,status){try{await api("/tasks/"+id,"PUT",{status});load()}catch(e){fail(e)}}
+function move(id,d){const t=tasks.find(x=>x.id===id),i=COLS.findIndex(c=>c[0]===t.status)+d;if(COLS[i])setStatus(id,COLS[i][0])}
+
+$("add").onclick=()=>openForm(null);
+$("cancel").onclick=()=>$("dlg").close();
+$("f").onsubmit=async()=>{
+  const v={title:$("title").value.trim(),notes:$("notes").value.trim(),prio:$("prio").value,due:$("due").value,status:$("status").value};
+  if(!v.title)return;
+  try{await(editing?api("/tasks/"+editing,"PUT",v):api("/tasks","POST",v));load()}catch(e){fail(e)}
+};
+$("board").onclick=async e=>{
+  const b=e.target.closest("button");if(!b)return;const id=b.dataset.id,a=b.dataset.a;
+  if(a==="edit")openForm(id);
+  else if(a==="del"){if(confirm("Delete this task?")){try{await api("/tasks/"+id,"DELETE");load()}catch(e){fail(e)}}}
+  else move(id,a==="fwd"?1:-1);
+};
+$("board").ondragstart=e=>{const c=e.target.closest(".card");if(c){dragId=c.dataset.id;c.classList.add("dragging")}};
+$("board").ondragend=()=>{dragId=null;render()};
+$("board").ondragover=e=>{const c=e.target.closest(".col");if(c&&dragId){e.preventDefault();document.querySelectorAll(".col").forEach(x=>x.classList.toggle("over",x===c))}};
+$("board").ondrop=e=>{const c=e.target.closest(".col");if(c&&dragId){e.preventDefault();setStatus(dragId,c.dataset.col)}};
+["q","fp","sort"].forEach(id=>$(id).oninput=render);
+
+token&&user?start():($("auth").hidden=false);
+</script>
+</body>
+</html>
