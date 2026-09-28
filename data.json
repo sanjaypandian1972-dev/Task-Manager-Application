@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "id": "81758f71-3bf8-4208-bec4-b2852fd12384",
+      "name": "Sanjay",
+      "email": "anyemail@gmail.com",
+      "hash": "$2a$10$Io/nSiFEO/Nu8CQYJjkBMeli56BvlCJS3QDDnO4wQNFVKRmjl.84W"
+    }
+  ],
+  "tasks": [
+    {
+      "notes": "",
+      "prio": "Medium",
+      "due": "2026-09-28",
+      "status": "todo",
+      "title": "hii",
+      "id": "fdf7f795-eecc-486f-97a6-bb06288f6c34",
+      "owner": "81758f71-3bf8-4208-bec4-b2852fd12384",
+      "created": 1790610855303
+    },
+    {
+      "notes": "vbrrr",
+      "prio": "Medium",
+      "due": "2026-09-29",
+      "status": "todo",
+      "title": "hii",
+      "id": "5e7d04eb-67de-47fe-9c09-c84c47dabea1",
+      "owner": "81758f71-3bf8-4208-bec4-b2852fd12384",
+      "created": 1790610882709
+    }
+  ]
+}

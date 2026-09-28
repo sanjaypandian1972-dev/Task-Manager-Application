@@ -1,0 +1,16 @@
+{
+  "name": "taskboard-app",
+  "version": "1.0.0",
+  "description": "Task manager with authentication, CRUD and real-time updates",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.17.0"
+  }
+}
